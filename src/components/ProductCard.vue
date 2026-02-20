@@ -1,6 +1,8 @@
 <template>
   <div
-    class="border rounded-lg p-3 flex flex-col items-center bg-white shadow hover:shadow-md transition"
+    class="border rounded-lg p-3 flex flex-col items-center 
+    bg-white shadow hover:shadow-md
+     transition cursor-pointer "
   >
     <!-- IMAGEM -->
     <img
@@ -27,7 +29,7 @@
     <!-- BOTÃO COM BADGE -->
     <button
       @click="$emit('add-to-cart', product)"
-      class="relative mt-3 w-full bg-blue-600 text-white py-1.5 rounded text-sm hover:bg-blue-700 transition"
+      class="relative mt-3 w-full bg-blue-600 text-white py-1.5 rounded text-sm hover:bg-blue-700 transition cursor-pointer"
     >
       🛒 Adicionar
 

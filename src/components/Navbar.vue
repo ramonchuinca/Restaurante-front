@@ -4,6 +4,7 @@ import { useCartStore } from '../stores/cart'
 import { useUIStore } from '../stores/ui'
 import { useRouter } from 'vue-router'
 
+
 const auth = useAuthStore()
 const cart = useCartStore()
 const ui = useUIStore()
@@ -13,6 +14,9 @@ function logout() {
   auth.logout()
   router.push({ name: 'login' })
 }
+
+
+
 </script>
 
 <template>
@@ -44,4 +48,42 @@ function logout() {
       </button>
     </div>
   </nav>
+
+    <section class="wrapper p-border" role="main">
+    <div class="homebuilder builder">
+      <div class="carrossel-1">
+        <picture class="slide-picture">
+          <!-- Mobile -->
+          <source
+            media="(max-width: 600px)"
+            srcset="/src/assets/OIP.webp"
+          />
+          <!-- Desktop -->
+          <!-- Fallback -->
+          <img
+            src="/src/assets/foto-teste-banner.jpg"
+            alt="Banner principal"
+            class="slide-image"
+          />
+        </picture>
+      </div>
+    </div>
+  </section>
+
 </template>
+
+
+
+<style scoped>
+.wrapper {
+  width: 100%;
+ 
+}
+
+.slide-image {
+  width: 100%;
+  height: 100%;
+  /* object-fit: cover;  */
+  display: block;
+}
+</style>
