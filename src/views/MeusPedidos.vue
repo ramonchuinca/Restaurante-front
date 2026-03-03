@@ -2,6 +2,11 @@
 import api from "../services/api";
 import { ref, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
+import { useAuthStore } from "../stores/auth"
+
+const auth = useAuthStore()
+
+
 
 const orders = ref([]);
 const loading = ref(true);

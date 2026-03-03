@@ -2,7 +2,10 @@ import { createRouter, createWebHistory } from "vue-router"
 import Menu from "../views/Menu.vue"
 import Checkout from "../views/Checkout.vue"
 import Login from "../views/Login.vue"
+import Register from "../views/Register.vue"
 import { useAuthStore } from "../stores/auth"
+
+
 
 const routes = [
   {
@@ -13,6 +16,11 @@ const routes = [
     path: "/login",
     name: "login",
     component: Login,
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: Register,
   },
   {
     path: "/menu",
@@ -26,7 +34,6 @@ const routes = [
     component: Checkout,
     meta: { requiresAuth: true },
   },
-  // ✅ ROTA PARA EDITAR PEDIDO
   {
     path: "/checkout/:orderId",
     name: "checkout-edit",
@@ -47,14 +54,16 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
 
+  // 🔒 Se precisa de login
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return next({ name: "login" })
   }
 
-  if (to.name === "login" && auth.isAuthenticated) {
+  // 🔁 Evita login duplicado
+  if ((to.name === "login" || to.name === "register") && auth.isAuthenticated) {
     return next({ name: "menu" })
   }
 

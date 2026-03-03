@@ -8,7 +8,7 @@ const api = axios.create({
   },
 })
 
-// 🔑 Enviar token automaticamente
+// 🔑 Token automático
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -17,15 +17,19 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// 🔒 Se token expirar
+// 🔒 Token inválido ou expirado
 api.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
       const auth = useAuthStore()
-      auth.logout()
+
+      auth.logout() // limpa store
+      localStorage.removeItem('token') // limpa token
+
       window.location.href = '/login'
     }
+
     return Promise.reject(error)
   }
 )
