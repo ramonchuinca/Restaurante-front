@@ -3,11 +3,14 @@ import api from "../services/api";
 import { ref, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import { useAuthStore } from "../stores/auth"
+import { watch } from "vue"
 
+
+/* 🔑 STORE PRIMEIRO (OBRIGATÓRIO) */
 const auth = useAuthStore()
 
 
-
+/* 📦 STATES */
 const orders = ref([]);
 const loading = ref(true);
 const opened = ref(null);
@@ -30,10 +33,31 @@ async function fetchOrders(showLoader = false) {
 }
 
 // Atualiza os pedidos a cada 10 segundos
-onMounted(() => {
-  fetchOrders(true);
-  interval = setInterval(fetchOrders, 10000); // Atualiza a cada 10 segundos
-});
+// onMounted(() => {
+//   fetchOrders(true);
+//   interval = setInterval(fetchOrders, 10000); 
+// });
+
+
+/* 👀 OBSERVA LOGIN / LOGOUT / TROCA DE USUÁRIO */
+watch(
+  () => auth.user?.id,
+  async (newUserId) => {
+    if (!newUserId) {
+      orders.value = []
+      if (interval) clearInterval(interval)
+      interval = null
+      return
+    }
+
+    if (interval) clearInterval(interval)
+
+    await fetchOrders(true)
+
+    interval = setInterval(fetchOrders, 10000)
+  },
+  { immediate: true }
+)
 
 // Limpa o intervalo ao sair da página
 onUnmounted(() => {
@@ -91,12 +115,23 @@ async function finalizarPedido(orderId) {
 }
 
 function statusLabel(status) {
+  const map = {
+    pending: "Pendente",
+    processing: "Em preparo",
+    delivered: "Concluído",
+    canceled: "Cancelado",
+  }
+
+  return map[String(status).toLowerCase()] || "Desconhecido"
+}
+
+function statusProgress(status) {
   return {
-    pending: 'Pendente',
-    processing: 'Em preparo',
-    delivered: 'Concluído',
-    canceled: 'Cancelado',
-  }[status] || 'Desconhecido'
+    pending: 33,
+    processing: 66,
+    delivered: 100,
+    canceled: 100,
+  }[status] || 0
 }
 
 const router = useRouter()
@@ -146,18 +181,35 @@ async function excluirPedido(orderId) {
               {{ formatDate(order.created_at) }}
             </p>
           </div>
-          <div class="flex items-center gap-2 mt-1">
-            <span
-              class="text-xs px-2 py-1 rounded font-semibold capitalize"
-              :class="statusClass(order.status)"
-            >
-              {{ statusLabel(order.status) }}
-            </span>
+
+          <span
+            class="text-xs px-2 py-1 rounded font-semibold"
+            :class="statusClass(order.status)"
+          >
+            {{ statusLabel(order.status) }}
+          </span>
+
+          <p class="font-bold">R$ {{ formatPrice(order.total) }}</p>
+        </div>
+
+        <!-- 🔥 Barra de progresso -->
+        <div class="mt-3">
+          <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              class="h-full transition-all duration-500"
+              :class="{
+                'bg-yellow-400': order.status === 'pending',
+                'bg-blue-500': order.status === 'processing',
+                'bg-green-500': order.status === 'delivered',
+                'bg-red-500': order.status === 'canceled',
+              }"
+              :style="{ width: statusProgress(order.status) + '%' }"
+            />
           </div>
 
-          <div class="text-right">
-            <p class="font-bold mt-1">R$ {{ formatPrice(order.total) }}</p>
-          </div>
+          <p class="text-xs mt-1 text-gray-600">
+            {{ statusLabel(order.status) }}
+          </p>
         </div>
 
         <!-- Itens -->
@@ -171,22 +223,13 @@ async function excluirPedido(orderId) {
               {{ item.product?.name ?? 'Produto' }} x {{ item.quantity }}
             </span>
             <span>
-              R$ {{ formatPrice((item.price ?? 0) * item.quantity) }}
+              R$ {{ formatPrice(item.price * item.quantity) }}
             </span>
           </div>
         </div>
 
-        <!-- Finalizar -->
-        <button
-          v-if="order.status === 'pending'"
-          @click.stop="finalizarPedido(order.id)"
-          :disabled="finalizando === order.id"
-          class="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {{ finalizando === order.id ? "Finalizando..." : "Finalizar Pedido" }}
-        </button>
-
-        <div v-if="order.status === 'pending'" class="mt-3 flex gap-2">
+        <!-- Ações -->
+        <div v-if="order.status === 'pending'" class="mt-4 flex gap-2">
           <button
             @click.stop="editarPedido(order.id)"
             class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"

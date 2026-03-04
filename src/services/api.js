@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: 'https://restaurante-backend-ceig.onrender.com/api',
   headers: {
     Accept: 'application/json',
   },
@@ -23,13 +23,10 @@ api.interceptors.response.use(
   error => {
     if (error.response?.status === 401) {
       const auth = useAuthStore()
-
-      auth.logout() // limpa store
-      localStorage.removeItem('token') // limpa token
-
+      auth.logout()
+      localStorage.removeItem('token')
       window.location.href = '/login'
     }
-
     return Promise.reject(error)
   }
 )
