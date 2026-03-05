@@ -1,32 +1,42 @@
-import axios from 'axios'
-import { useAuthStore } from '../stores/auth'
+import axios from "axios"
 
 const api = axios.create({
-  baseURL: 'https://restaurante-backend-ceig.onrender.com/api',
+  baseURL: "https://restaurante-backend-ceig.onrender.com/api",
   headers: {
-    Accept: 'application/json',
+    Accept: "application/json",
+    "Content-Type": "application/json",
   },
 })
 
-// 🔑 Token automático
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// 🔑 Adiciona token automaticamente
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token")
 
-// 🔒 Token inválido ou expirado
-api.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response?.status === 401) {
-      const auth = useAuthStore()
-      auth.logout()
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// 🔒 Trata token inválido
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+
+      // remove token
+      localStorage.removeItem("token")
+
+      // redireciona para login
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login"
+      }
+    }
+
     return Promise.reject(error)
   }
 )
