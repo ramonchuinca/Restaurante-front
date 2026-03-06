@@ -2,6 +2,7 @@
 import { useCartStore } from "../stores/cart";
 import { useRouter, useRoute } from "vue-router";
 import api from "../services/api";
+import axios from "axios";
 import { ref, computed, onMounted } from "vue";
 
 // Pegando o estado do carrinho e do roteador
@@ -9,33 +10,57 @@ const cart = useCartStore();
 const router = useRouter();
 const route = useRoute();
 
-// Definindo variáveis reativas
+// Estados
 const loading = ref(false);
-const address = ref("");
 const paymentMethod = ref("");
 const addressError = ref(false);
+
+// Campos de endereço
+const cep = ref("");
+const rua = ref("");
+const numero = ref("");
+const bairro = ref("");
+const cidade = ref("");
+const estado = ref("");
 
 // Verifica se estamos editando o pedido
 const orderId = route.params.orderId;
 const isEditing = !!orderId;
 
-// Computed para calcular o total do carrinho
+// Total do carrinho
 const total = computed(() =>
   cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 );
 
-// Função para validar o endereço
+// Buscar endereço pelo CEP
+async function buscarCep() {
+  if (cep.value.length < 8) return;
+
+  try {
+    const { data } = await axios.get(`https://viacep.com.br/ws/${cep.value}/json/`);
+
+    rua.value = data.logradouro;
+    bairro.value = data.bairro;
+    cidade.value = data.localidade;
+    estado.value = data.uf;
+
+  } catch (error) {
+    console.error("Erro ao buscar CEP");
+  }
+}
+
+// Validar endereço
 function validateAddress() {
-  const regex = /[A-Za-z0-9\s]+,?\s?[0-9]+/; // Verifica se o endereço contém números e pelo menos um texto
-  if (!address.value || !regex.test(address.value)) {
+  if (!rua.value || !numero.value || !bairro.value || !cidade.value || !estado.value) {
     addressError.value = true;
     return false;
   }
+
   addressError.value = false;
   return true;
 }
 
-// Funções para manipular o carrinho
+// Manipulação do carrinho
 function incrementItem(itemId) {
   cart.increment(itemId);
 }
@@ -48,40 +73,46 @@ function removeItem(itemId) {
   cart.remove(itemId);
 }
 
-// Função para enviar o pedido
+// Enviar pedido
 async function submitOrder() {
   if (cart.items.length === 0) return;
 
-  if (!address.value || !paymentMethod.value || !validateAddress()) {
-    alert("Informe um endereço válido e a forma de pagamento");
+  if (!paymentMethod.value || !validateAddress()) {
+    alert("Informe endereço e forma de pagamento");
     return;
   }
 
   loading.value = true;
 
+  // Monta endereço completo
+  const fullAddress = `${rua.value}, ${numero.value} - ${bairro.value}, ${cidade.value} - ${estado.value}, CEP: ${cep.value}`;
+
   try {
     if (isEditing) {
-      // Atualiza os itens do pedido se estiver editando
+
       await api.put(`/orders/${orderId}/items`, {
         items: cart.items.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
         })),
       });
+
     } else {
-      // Cria um novo pedido
+
       await api.post("/orders", {
         items: cart.items.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
         })),
-        address: address.value,
+        address: fullAddress,
         payment_method: paymentMethod.value,
       });
+
     }
 
     cart.clear();
     router.push("/orders");
+
   } catch (err) {
     console.error(err);
     alert("Erro ao finalizar pedido 😢");
@@ -90,12 +121,11 @@ async function submitOrder() {
   }
 }
 
-// Função para carregar dados do pedido quando estamos editando
+// Carregar pedido se estiver editando
 onMounted(async () => {
   if (isEditing) {
     const { data } = await api.get(`/orders/${orderId}`);
 
-    // Atualiza os itens do carrinho com os itens do pedido
     cart.setItems(
       data.data.items.map((item) => ({
         id: item.product.id,
@@ -105,7 +135,6 @@ onMounted(async () => {
       }))
     );
 
-    address.value = data.data.address;
     paymentMethod.value = data.data.payment_method;
   }
 });
@@ -196,15 +225,54 @@ onMounted(async () => {
       </div>
 
       <!-- ENDEREÇO -->
-      <div class="mt-6">
-        <label class="block font-semibold mb-1">Endereço de entrega</label>
-        <textarea
-          v-model="address"
-          class="w-full border rounded-lg p-2"
-          placeholder="Rua, número, bairro, complemento..."
-        ></textarea>
-         <p v-if="addressError" class="text-red-500 text-sm">Por favor, informe um endereço válido.</p>
-      </div>
+   <div class="mt-6">
+  <label class="block font-semibold mb-2">Endereço de entrega</label>
+
+  <div class="grid grid-cols-2 gap-3">
+
+    <input
+      v-model="cep"
+      @blur="buscarCep"
+      placeholder="CEP"
+      class="border rounded-lg p-2"
+    />
+
+    <input
+      v-model="rua"
+      placeholder="Rua"
+      class="border rounded-lg p-2"
+    />
+
+    <input
+      v-model="numero"
+      placeholder="Número"
+      class="border rounded-lg p-2"
+    />
+
+    <input
+      v-model="bairro"
+      placeholder="Bairro"
+      class="border rounded-lg p-2"
+    />
+
+    <input
+      v-model="cidade"
+      placeholder="Cidade"
+      class="border rounded-lg p-2"
+    />
+
+    <input
+      v-model="estado"
+      placeholder="Estado"
+      class="border rounded-lg p-2"
+    />
+
+  </div>
+
+  <p v-if="addressError" class="text-red-500 text-sm mt-2">
+    Preencha todos os campos do endereço
+  </p>
+</div>
 
       <!-- PAGAMENTO -->
       <div class="mt-4">

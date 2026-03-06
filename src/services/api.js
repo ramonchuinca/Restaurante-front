@@ -1,7 +1,7 @@
 import axios from "axios"
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: "http://localhost:8000/api",
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -26,6 +26,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+
     if (error.response && error.response.status === 401) {
 
       // remove token
@@ -35,6 +36,7 @@ api.interceptors.response.use(
       if (window.location.pathname !== "/login") {
         window.location.href = "/login"
       }
+
     }
 
     return Promise.reject(error)
